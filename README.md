@@ -1,47 +1,26 @@
 ... purpose and features ???
-
-
-# Configure values.yaml
-- set cluster.isGKE
-- cert-manager
-  set cluster.cert-manager.enabled
-  set cluster.cert-manager.namespace
-  set cluster.cert-manager custom options
-  set cluster.letsEncryptAccountEmail
-- set cluster.logsStorageSize
-- foreach environment to deploy
-  set $ENV-ip or global-ip
-  ...set name/hostName/timezonePath ecc
-  ...set at least one URLs ???
-  ...set optional nginxResources / syslogResources
-  set enabled boolean
-
-## GKE
-- set cluster.zone
-
-## Standard
-- set cluster.pvHostPath
-
+see example values.yaml
 
 # Cluster setup
-In both GKE/Standard case, it is assumed that you have already installed a basic cluster with generic features.
+In both GKE/Standard case, it is assumed that you have already installed a basic cluster with generic features
 
 ## GKE
-- Declare some environment variables used later
-  ```export CLUSTER_NAME=...```
-  ```export ZONE=...```
-  ```export PROJECT=...```
+- Declare some environment variables used later\
+  ```export CLUSTER_NAME=...```\
+  ```export ZONE=...```\
+  ```export PROJECT=...```\
 
-- Initialize GKE environment
-  ```gcloud container clusters get-credentials $CLUSTER_NAME --zone $ZONE --project $PROJECT```
+- Initialize GKE environment\
+  ```gcloud container clusters get-credentials $CLUSTER_NAME --zone $ZONE --project $PROJECT```\
 
-- for each env to deploy / cluster wide
-  ```export ENV=...```
-  ```gcloud compute addresses create $ENV-ip --global```
-  or
-  ```gcloud compute addresses create global-ip --global```
+- Associate external IP address/es
+  ```export ENV=...```\
+  for each environments to deploy:\
+  ```gcloud compute addresses create $ENV-ip --global```\
+  or cluster wide:\
+  ```gcloud compute addresses create global-ip --global```\
 
-- check addresses FYI
+- Check addresses FYI\
   ```gcloud compute addresses list```
 
 ### Setup plugin needed by cert-manager (if enabled)
@@ -51,41 +30,66 @@ In both GKE/Standard case, it is assumed that you have already installed a basic
 ```gcloud container clusters update $CLUSTER_NAME --update-addons=GcePersistentDiskCsiDriver=ENABLED --zone=$ZONE```
 
 ## Standard
-- create a mountpoint for local persistent volume
-- provision ext IP ???
+- Create a mountpoint for local persistent volume\
+- Provision ext IP ???
 
 
 # Configure your DNS
-It is assumed you are using an external DNS service, or know how to manage DNS resources from your k8s cluster.
+It is assumed you are using an external DNS service, or know how to manage DNS resources from your k8s cluster\
 ...create records A
 
 
+# Configure values.yaml
+- Set cluster.isGKE boolean being either GKE or not (say standard)
+- Set cert-manager properties\
+  set cluster.cert-manager.enabled boolean\
+  set cluster.cert-manager.namespace\
+  set cluster.cert-manager custom options\
+  set cluster.letsEncryptAccountEmail\
+- Set cluster.logsStorageSize\
+- Set environment/s properties; foreach environment to deploy:\
+  set name\
+  set ipName: $ENV-ip\
+  or
+  set ipName: global-ip\
+  set name/hostName/timezonePath etc\
+  set at least one URLs, see example values.yaml\
+  set optional nginxResources / syslogResources\
+  set enabled boolean
+
+## GKE
+- Set cluster.zone
+
+## Standard
+- Set cluster.pvHostPath
+
+
 # Install Helm Chart
-helm install helm-url-logger ./ -f values.yaml --namespace url-logger
+```helm install helm-url-logger ./ -f values.yaml --namespace url-logger```
 
 
 # Uninstall Helm Chart
-helm uninstall helm-url-logger --namespace url-logger
+```helm uninstall helm-url-logger --namespace url-logger```
 
 
 # Cluster cleanup
 
 ## GKE
-- Unprovision persistent volume ???
-  ```...```
-- Delete the domain name.
-  ```export ZONE=...```
-  for each env deployed:
-  ```export DOMAIN_NAME=...```
-  ```gcloud dns record-sets delete $DOMAIN_NAME --zone $ZONE --type A```
-- Delete the static IP address/es.
-  for each env deployed / cluster wide:
-  ```export ENV=...```
-  ```gcloud compute addresses delete $ENV-ip --global```
-  or
+- Unprovision persistent volume ???\
+  ```...```\
+- Delete the domain name\
+  ```export ZONE=...```\
+  for each environments deployed:\
+  ```export DOMAIN_NAME=...```\
+  ```gcloud dns record-sets delete $DOMAIN_NAME --zone $ZONE --type A```\
+- Delete the static IP address/es\
+  ```export $ENV-ip=...```\
+  for each enviroments deployed:\
+  ```gcloud compute addresses delete $ENV-ip --global```\
+  or cluster wide:\
   ```gcloud compute addresses delete global-ip --global```
 
 ## Standard
-- remove your local persistent volume directory
-- unprovision your domain name/s resources such as LoadBalancer ???
-- unprovision your environments/global IP address/es ???
+- Remove your local persistent volume directory\
+- Unprovision your domain name/s resources such as LoadBalancer ???\
+- Unprovision your environments/global IP address/es ???

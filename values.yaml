@@ -3,10 +3,14 @@ name: url-logger
 cluster:
   isGKE: true
   zone: us-central1-a
-  certManagerEnabled: true
   letsEncryptAccountEmail: autocesco@gmail.com
   logsStorageSize: 10Gi
 #  pvHostPath: /mnt/url-logger
+
+#  certManagerEnabled: true
+  cert-manager:
+    enabled: true
+    namespace: cert-manager
 
 environments:
   - name: env0
