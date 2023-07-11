@@ -1,0 +1,29 @@
+{{ range $_, $env := .Values.environments }}
+  {{- if $env.enabled }}
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: {{ $.Values.name }}-{{ $env.name }}
+  namespace: {{ $.Values.name }}
+  labels:
+    app: {{ $.Values.name }}-{{ $env.name }}
+
+spec:
+  ports:
+  - name: 8080-tcp
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+
+  selector:
+    app: {{ $.Values.name }}-{{ $env.name }}
+
+  sessionAffinity: None
+
+  type: {{ $env.serviceType | default "ClusterIP" }}
+  {{- end }}
+
+---
+
+{{ end }}

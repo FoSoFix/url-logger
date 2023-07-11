@@ -1,0 +1,47 @@
+{{ range $_, $env := .Values.environments }}
+  {{- if $env.enabled }}
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: {{ $.Values.name }}-{{ $env.name }}-vhost-configmap
+  namespace: {{ $.Values.name }}
+
+data:
+  vhost.conf: |
+
+    log_format custom-access '[$time_local] $request "$http_x_forwarded_for" "$http_user_agent"';
+
+    types {
+        text/plain  txt log;
+    }
+
+    server {
+        listen 8080 default_server;
+
+        server_name localhost;
+
+        root /opt/bitnami/nginx/html;
+
+        index index.html;
+
+        location / {
+                try_files $uri $uri/ =404;
+        }
+    {{- range $_, $v := $env.URLs }}
+
+        location /{{ $v.payloadURLpath }}/ {
+                alias /opt/bitnami/nginx/static/;
+        }
+
+        location /{{ $v.logsURLpath }}/ {
+                alias /opt/bitnami/nginx/{{ $.Values.name }}/{{ $v.payloadURLpath }}/;
+                autoindex on;
+        }
+    {{- end }}
+        access_log syslog:server=localhost:5514 custom-access;
+  {{- end }}
+
+---
+
+{{ end }}

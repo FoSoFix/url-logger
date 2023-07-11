@@ -1,0 +1,43 @@
+{{ range $_, $env := .Values.environments }}
+  {{- if $env.enabled }}
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: {{ $.Values.name }}-{{ $env.name }}-syslog-configmap
+  namespace: {{ $.Values.name }}
+
+data:
+  syslog-ng.conf: |
+    @version: 3.9
+
+    source s_net {
+       network(ip(127.0.0.1) port(5514) transport("udp"));
+    };
+
+    {{- range $_, $v := $env.URLs }}
+      {{- $key := $v.payloadURLpath | sha1sum }}
+    # access URL "{{ $v.payloadURLpath }}"
+
+    filter f_{{ $key }} {
+        message(
+            "/{{ $v.payloadURLpath }}/"
+        );
+    };
+
+    destination d_{{ $key }} {
+        file("/var/log/{{ $.Values.name }}/{{ $v.payloadURLpath }}/${YEAR}.${MONTH}.${DAY}.log" template("${MESSAGE}\n") perm(0644) dir_perm(0755) create_dirs(yes));
+    };
+
+    log {
+        source(s_net);
+        filter(f_{{ $key }});
+        destination(d_{{ $key }});
+    };
+
+    {{- end }}
+  {{- end }}
+
+---
+
+{{ end }}

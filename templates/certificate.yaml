@@ -1,0 +1,28 @@
+{{ range $_, $env := .Values.environments }}
+  {{- if $env.enabled }}
+    {{- if $.Values.cluster.certManagerEnabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+
+metadata:
+  name: {{ $.Values.name }}-{{ $env.name }}-cert
+  namespace: {{ $.Values.name }}
+      {{- if $.Values.cluster.isGKE }}
+  annotations:
+    cert-manager.io/issue-temporary-certificate: "true"
+      {{- end }}
+
+spec:
+  dnsNames: {{ $env.hostName }}
+
+  secretName: {{ $.Values.name }}-{{ $env.name }}-secret
+
+  issuerRef:
+    name: letsencrypt-clusterIssuer
+    kind: ClusterIssuer
+    {{- end }}
+  {{- end }}
+
+---
+
+{{ end }}

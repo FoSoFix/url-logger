@@ -1,0 +1,40 @@
+{{ range $_, $env := .Values.environments }}
+  {{- if $env.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: {{ $.Values.name }}-{{ $env.name }}
+  namespace: {{ $.Values.name }}
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: {{ $env.ipName }}
+    {{- if $.Values.cluster.isGKE }}
+    kubernetes.io/ingress.class: gce
+    {{- end }}
+    {{- if $.Values.cluster.certManagerEnabled }}
+      {{- if $.Values.cluster.isGKE }}
+    acme.cert-manager.io/http01-edit-in-place: "true"
+      {{- end }}
+    cert-manager.io/cluster-issuer: letsencrypt-clusterIssuer
+    {{- end }}
+
+spec:
+
+  {{- if not $.Values.cluster.isGKE }}
+  ingressClassName: nginx
+
+  {{- end }}
+  defaultBackend:
+    service:
+      name: {{ $.Values.name }}-{{ $env.name }}
+      port:
+        number: 8080-tcp
+
+  tls:
+    - hosts: {{ $env.hostName }}
+      secretName: {{ $.Values.name }}-{{ $env.name }}-secret
+  {{- end }}
+
+---
+
+{{ end }}

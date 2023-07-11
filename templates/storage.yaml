@@ -1,0 +1,67 @@
+{{ if $.Values.cluster.isGKE }}
+piVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: pd-standard
+
+provisioner: pd.csi.storage.gke.io
+
+volumeBindingMode: WaitForFirstConsumer
+
+allowedTopologies:
+  - matchLabelExpressions:
+    - key: topology.gke.io/zone
+      values:
+      - {{ $.Values.cluster.zone }}
+
+parameters:
+  type: pd-standard
+
+---
+{{ else }}
+apiVersion: v1
+kind: PersistentVolume
+
+metadata:
+  name: {{ $.Values.name }}-logs-pv
+  namespace: {{ $.Values.name }}
+  labels:
+    type: local
+
+spec:
+  storageClassName: manual
+
+  capacity:
+    storage: {{ $.Values.cluster.logsStorageSize }}
+
+  accessModes:
+    - ReadWriteOnce
+
+  hostPath:
+    path: {{ .Values.cluster.pvHostPath }}
+
+---
+{{ end }}
+
+{{ range $_, $env := .Values.environments }}
+  {{- if $env.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $.Values.name }}-{{ $env.name }}-logs-pvc
+  namespace: {{ $.Values.name }}
+
+spec:
+  accessModes:
+    - ReadWriteOnce
+
+  resources:
+    requests:
+      storage: {{ $.Values.cluster.logsStorageSize }}
+
+  storageClassName: {{ $.Values.cluster.isGKE | ternary "pd-standard" "manual" }}
+  {{- end }}
+
+---
+
+{{ end }}

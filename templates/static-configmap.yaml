@@ -1,0 +1,19 @@
+{{ range $_, $env := .Values.environments }}
+  {{- if $env.enabled }}
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: {{ $.Values.name }}-{{ $env.name }}-static-configmap
+  namespace: {{ $.Values.name }}
+
+binaryData:
+  index.html: {}
+    {{- range $_, $v := $env.URLs }}
+      {{- nindent 2 $v.payloadFileName }}: {{ $.Files.Get $v.payloadFileName | b64enc }}
+    {{- end }}
+  {{- end }}
+
+---
+
+{{ end }}

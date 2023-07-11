@@ -1,0 +1,55 @@
+name: url-logger
+
+cluster:
+  isGKE: true
+  zone: us-central1-a
+  certManagerEnabled: true
+  letsEncryptAccountEmail: autocesco@gmail.com
+  logsStorageSize: 10Gi
+#  pvHostPath: /mnt/url-logger
+
+environments:
+  - name: env0
+    ipName: env0-ip
+
+    hostName: mydrive.photo-frame.com
+
+    URLs:
+      - payloadFileName: payload.png
+        payloadURLpath: 3cd7a0db76ff9dca48979e24c39b408c
+        logsURLpath: 3cd7a0db76ff9dca48979e24c39b408c-url-logger
+#      - payloadFileName: payload.png
+#        payloadURLpath: 3cd7a0db76ff9dca48979e24c39b408c
+#        logsURLpath: 3cd7a0db76ff9dca48979e24c39b408c-url-logger
+
+    timezonePath: /usr/share/zoneinfo/Europe/Rome
+
+    nginxResources:
+      limits:
+        cpu: 100m
+        memory: 250Mi
+      requests:
+#        cpu: 50m
+        memory: 50Mi
+
+    syslogResources:
+      limits:
+        cpu: 50m
+
+    enabled: true
+
+  - name: env1
+    ipName: env1-ip
+
+    hostName: mydrive.photo-frame.com
+
+    URLs:
+      - payloadFileName: payload.png
+        payloadURLpath: 3cd7a0db76ff9dca48979e24c39b408c
+        logsURLpath: 3cd7a0db76ff9dca48979e24c39b408c-url-logger
+
+    timezonePath: /usr/share/zoneinfo/Europe/Rome
+
+    serviceType: NodePort
+
+    enabled: true

@@ -1,0 +1,119 @@
+{{ range $_, $env := .Values.environments }}
+  {{- if $env.enabled }}
+kind: Pod
+apiVersion: v1
+
+metadata:
+  name: {{ $.Values.name }}-{{ $env.name }}
+  namespace: {{ $.Values.name }}
+  labels:
+    app: {{ $.Values.name }}-{{ $env.name }}
+
+spec:
+    {{- if $.Values.cluster.isGKE }}
+  nodeSelector:
+    topology.gke.io/zone: {{ $.Values.cluster.zone }}
+    {{- end }}
+
+  containers:
+      - name: {{ $.Values.name }}-{{ $env.name }}
+        image: 'bitnami/nginx:latest'
+        imagePullPolicy: Always
+
+        ports:
+          - name: 8080tcp8080
+            containerPort: 8080
+            protocol: TCP
+
+        volumeMounts:
+          - name: {{ $.Values.name }}-{{ $env.name }}-nginx
+            mountPath: /opt/bitnami/nginx/conf/server_blocks
+          - name: {{ $.Values.name }}-{{ $env.name }}-static
+            mountPath: /opt/bitnami/nginx/static
+          - name: {{ $.Values.name }}-{{ $env.name }}-logs
+            mountPath: /opt/bitnami/nginx/{{ $.Values.name }}
+            subPath: {{ $env.name }}
+          - name: {{ $.Values.name }}-{{ $env.name }}-timezone
+            mountPath: /etc/localtime
+
+      {{- if $env.nginxResources }}
+
+        resources:
+        {{- $env.nginxResources | toYaml | nindent 10 }}
+      {{- end }}
+
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 20
+          timeoutSeconds: 5
+          periodSeconds: 10
+          successThreshold: 2
+          failureThreshold: 3
+
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 20
+          timeoutSeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 5
+
+      - name: syslog
+        image: balabit/syslog-ng:latest
+        imagePullPolicy: Always
+
+        volumeMounts:
+          - name: {{ $.Values.name }}-{{ $env.name }}-logs
+            mountPath: /var/log/{{ $.Values.name }}
+            subPath: {{ $env.name }}
+          - name: {{ $.Values.name }}-{{ $env.name }}-syslog
+            mountPath: /etc/syslog-ng/syslog-ng.conf
+            subPath: syslog-ng.conf
+          - name: {{ $.Values.name }}-{{ $env.name }}-timezone
+            mountPath: /etc/localtime
+
+      {{- if $env.syslogResources }}
+
+        resources:
+        {{- $env.syslogResources | toYaml | nindent 10 }}
+      {{- end }}
+
+  restartPolicy: Always
+
+  initContainers:
+      - name: setup
+        image: busybox:1.35
+
+        command: ["/bin/mkdir"]
+        args: ["-p","/mnt/{{ $.Values.name }}/{{ $env.name }}"]
+
+        volumeMounts:
+        - name: {{ $.Values.name }}-{{ $env.name }}-logs
+          mountPath: /mnt/{{ $.Values.name }}
+
+  volumes:
+    - name: {{ $.Values.name }}-{{ $env.name }}-nginx
+      configMap:
+        name: {{ $.Values.name }}-{{ $env.name }}-nginx-configmap
+        defaultMode: 484
+    - name: {{ $.Values.name }}-{{ $env.name }}-static
+      configMap:
+        name: {{ $.Values.name }}-{{ $env.name }}-static-configmap
+    - name: {{ $.Values.name }}-{{ $env.name }}-syslog
+      configMap:
+        name: {{ $.Values.name }}-{{ $env.name }}-syslog-configmap
+    - name: {{ $.Values.name }}-{{ $env.name }}-logs
+      persistentVolumeClaim:
+        claimName: {{ $.Values.name }}-{{ $env.name }}-logs-pvc
+    - name: {{ $.Values.name }}-{{ $env.name }}-timezone
+      hostPath:
+        path: {{ $env.timezonePath }}
+  {{- end }}
+
+---
+
+{{ end }}
